@@ -1,0 +1,26 @@
+This directory contains several versions of code, data, and tools for
+Pavlovian-style control (behavior driven by predictions).
+
+1. IntroFromCSP - Two minimal versions of the code.  These produce a
+random policy, and a sarsa-driven policy using a wrapper around the
+CreateSerialProcessor code.  These pieces of code showcase how the pavlov
+code interacts with the robot through csp3.
+
+2. pavlovDemo - Versions of the code that are mature and stable for demos.
+
+3. pavlovBase - The current code with advanced behaviors (Actor/Critic, Modeless, Modes, etc.)
+
+4. pavlov - The original code
+
+4. pavlovGameController - Code modified by high-school interns for
+controlling one robot via a RaspberryPi with a gamepad that is
+connected by another RaspberryPi.
+
+5. analysis - Python scripts for analzing the data, and for display)
+
+6. Data - raw datafiles, source, etc.
+
+7. vestigial - older code branches
+
+8. InfrastructureTests - code for testing out individual components
+(hardware, networks, logging, etc).

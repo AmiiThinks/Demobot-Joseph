@@ -1,0 +1,20 @@
+This directory contains versions of the Create Wall Avoidance demos.
+
+1. IntroFromCSP - An introduction to the structure of the agent
+interface that has been abstracted from the CSP code.  The two
+programs show a random policy and a sarsa-driven policy.  They use a
+wrapper around the CreateSerialProcessor code.  This can be helpful
+for a user who is familiar with the CSP code.
+
+2. visualAvoidance - This directory has three robot control programs.
+In all three the robot learns to predict how soon it will collide (as
+measured by a bumper press) if it drives forward.  The robot turns to
+avoid a wall if the prediction is high.  The first program is
+demowaller2 (with a special modes for turning away and for testing the
+prediction).  The second program is demowallerD1 (modeless, stochastic
+decisions are made at each timestep based on preferences), and
+demowallerDAC (an actor-critic code with a reward that is also a
+prediction, but the learning varible rho is artificially constrained
+to be either 0 or 1).
+
+3. logfiles - The code will produce logfiles that go in this directory.
