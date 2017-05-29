@@ -1,0 +1,180 @@
+\documentclass{article}
+\usepackage{fullpage,amsmath,algorithm,algpseudocode,amssymb}
+\begin{document}
+\title{Converting a crafted (pavlovian) stochastic policy to a reward-maximizing actor-critic}
+\maketitle
+
+\newcommand{\ind}{\mathbb{I}}
+\newcommand{\expect}{\mathbb{E}}
+
+We have developed a robot system that avoids collisions using a fixed stochastic policy with a given representation.
+
+The policy is crafted by formalizing the characteristics desired from the behavior in terms of externally visible quantities and in terms of a prediction on the robot that encapsulates one piece of empirical knowledge. The robot behavior has two possible actions, forward (F) and turn (T).
+
+The prediction $p0$ anticipates when the robot bumper will be pressed when driving forward, presumably from a collision with a wall. {\em Specify the prediction as a GVF here.}  The ideal value of $p0$ is 1 when the bumper will be pressed on the next timestep if the robot drives forward, and it is 0 when the robot is infinitely far away from a wall.  The robot interacts with the world $H=100/3$ times per second.  The prediction $p0$ has a gamma of 0 when the bumper is pressed, and a gamma of $0.95$ otherwise.  Thus in the absence of any bumper presses, the prediction extends for $20 (= (1-\gamma)^{-1})$ timesteps in expectation (i.e. 2/3 of a second).  We want the robot to have an equal probability selecting a drive action or a turn action when the ideal prediction has a value of $eq=0.5$ (what is the timescale?  $0.95^{timescale} = 0.5$).
+
+Now as we don't want to be limited by the decision rate of the robot, we instead specify the desired number of switches per second if the prediction was at this equilibrium point. Let us define a new constant, \[ TT= \text{decisions-per-second}/ \text{expected-number-of-switches-per-second}, \] and set its value to be $TT=5$.  After some algebraic manipulation, we find that there is a constant $K_s= log_{e}((TT-1)(numberOfActions-1)$ which would govern switching at equilibirum in the absence of more information from the prediction.
+
+There is one more constant used to scale the relative influence of the prediction on the action selection, we chose the number 4 (so p0=.75 means turning is e times more likely than going forward).
+
+We can write the preferences and the policy in an intuitive form.
+
+
+\begin{flalign*}
+  pref(F) &= - 4 K_s( p0 - eq) + K_s \ind(LastAction==F) \\
+ pref(T) &= K_s \ind(LastAction==T)  \\
+ \pi( a=F | x) &= \exp(pref(F)) / (\sum_{i=F,T} \exp(pref(i))) \\
+ \pi( a=T | x) &= \exp(pref(T)) / (\sum_{i=F,T} \exp(pref(i))) 
+\end{flalign*}
+
+ We rewrite the policy in an expoential-linear form by firsrt introducing a representation $x$, that has four components indexed from 0.
+\begin{itemize}
+\item $(x_0)_t \equiv 1 $: a bias unit
+\item $(x_1)_t \equiv p0 \approx \expect[ G_t | \pi=F, \gamma_{t+k}=0$ on bump, $0.95$ otherwise, $r_{t+k}=\ind(Bump_{t+k})]$: a learned policy-contingent prediction (also known as a general value function) of the bumper for the option of driving forward with termination etiher on a bump or with a 5\% probability per timestep,
+\item $(x_2)_t\equiv \ind(A_{t-1}=F) $: the previous action was forward,
+  \item $(x_3)_t \equiv \ind(A_{t-1}=T) $ : the previous action was to turn counterclockwise.
+\end{itemize}
+
+We rewrite the stochastic policy, with action selection probabilities given by exponentiated preferences for each action, where each preference is a linear function of the feature vector $x$, and the policy parameters $u$ are initialized to the constants from above.
+
+\begin{align*}
+ pref(F) &= u_0 x_0 + u_1 x_1 + u_2 x_2  \\
+ pref(T) &= u_2 x_3 \\
+ \pi( a=F | x) &= \exp(pref(F)) / (\sum_{i=F,T} \exp(pref(i))) \\
+ \pi( a=T | x) &= \exp(pref(T)) / (\sum_{i=F,T} \exp(pref(i))) \\
+ u_0 = 4eq K_s \quad u_1 = 4K_s &\quad u_2 = K_s \quad u_3=K_s 
+\end{align*}
+
+Now an average-reward actor-critic algorithm can be used to tune the parameters $u$ so as to maximize a given reward signal over a long term, but it first requires us to calculate gradients, namely $\nabla_u \pi(a=k | x) / \pi( a=k | x)$.  Given the above equations, the gradients can be found through the simple, tedious calculations shown below.
+
+
+\[ \frac{\nabla_u \pi}{\pi} = ((\partial_{u_0} \pi) / \pi , (\partial_{u_1} \pi) / \pi  ,(\partial_{u_2} \pi) / \pi ) \]
+
+To compute these, it is useful to precompute $\partial_{u_j} \exp ( pref(i))$ for all $i$ and $j$.
+
+\begin{flalign*}
+ \partial_{u_0} \exp ( pref(F)) &= \partial_{u_0} \exp( u_0 x_0 + u_1 x_1 + u_2 x_2) &\\
+&= \exp( u_0 x_0 + u_1 x_1 + u_2 x_2) \partial_{u_0} ( u_0 x_0 + u_1 x_1 + u_2 x_2)&\\
+ &= \exp( pref(F)) x_0&\\
+ \partial_{u_1} \exp ( pref(F)) &= \exp( pref(F)) x_1 &\\
+ \partial_{u_2} \exp ( pref(F)) &= \exp( pref(F)) x_2 &\\
+ \partial_{u_0} \exp ( pref(T)) &= 0 &\\
+ \partial_{u_1} \exp ( pref(T)) &= 0 &\\
+ \partial_{u_2} \exp ( pref(T)) &= \exp( pref(T)) x_3 &
+\end{flalign*}
+
+
+Let $W = \sum_i \exp (pref(i))$, and we compute its partial derivatives.
+\begin{flalign*}
+  \partial_{u_0} W &=  \exp (pref(F)) x_0   &\\
+ \partial_{u_1} W &=  \exp (pref(F)) x_1 &\\
+ \partial_{u_2} W &= \exp( pref(F)) x_2 +  \exp( pref(T) x_3  &
+\end{flalign*}
+
+
+
+Now we can write the relevant gradients directly, recalling that $\pi(a|x) = \exp(pref(a))/ W $, and also recalling that $\partial ( f/g) = g^{-2} ( (\partial f) g - f (\partial g) )$.
+
+
+
+\begin{flalign*}
+  \frac{\partial_{u_0} \pi(F|x)}{\pi(F|x)}
+&= \frac{W}{\exp(pref(F))} \partial_{u_0} \frac{\exp(pref(F)) }{W}&\\
+&=\frac{W}{\exp(pref(F))} \frac{1}{W^2} ((\partial_{u_0} \exp(pref(F))) W -  \exp(pref(F)) \partial_{u_0} W)&\\
+&=\frac{W}{\exp(pref(F))} \frac{1}{W^2} (\exp(pref(F)) x_0 W -  \exp(pref(F))\exp(pref(F)) x_0 )&\\
+&=\frac{1}{1} \frac{1}{W} ( x_0 W -  \exp(pref(F)) x_0 )&\\
+&=x_0  ( 1 -  \frac{\exp(pref(F))}{W} )&\\
+&=x_0  ( 1 - \pi(F|x) ) &\\
+&=x_0   \pi(T|x)  &\\
+\end{flalign*}
+
+
+
+
+\begin{flalign*}
+\frac{\partial_{u_1} \pi(F|x)}{\pi(F|x)}
+&= \frac{W}{\exp(pref(F))} \partial_{u_1} \frac{\exp(pref(F)) }{W}&\\
+&=\frac{W}{\exp(pref(F))} \frac{1}{W^2} ((\partial_{u_1} \exp(pref(F))) W -  \exp(pref(F)) \partial_{u_1} W) &\\
+&=\frac{W}{\exp(pref(F))} \frac{1}{W^2} (\exp(pref(F)) x_1 W -  \exp(pref(F))\exp(pref(F)) x_1 )&\\
+&=x_1  ( 1 - \pi(F|x) )&\\
+&=x_1   \pi(T|x) &\\
+\end{flalign*}
+
+\begin{flalign*}
+\frac{\partial_{u_2} \pi(F|x)}{\pi(F|x)}
+&= \frac{W}{\exp(pref(F))} \partial_{u_2} \frac{\exp(pref(F)) }{W}&\\
+&=\frac{W}{\exp(pref(F))} \frac{1}{W^2} ((\partial_{u_2} \exp(pref(F))) W -  \exp(pref(F)) \partial_{u_2} W) &\\
+&=\frac{W}{\exp(pref(F))} \frac{1}{W^2} (\exp(pref(F)) x_2 W -  \exp(pref(F))(  \exp(pref(F)) x_2 + \exp( pref(T)) x_3   )&\\
+&=\frac{1}{\exp(pref(F))} \frac{\exp(pref(F))}{W} (x_2 W -  (  \exp(pref(F)) x_2 + \exp( pref(T)) x_3   )&\\
+&=\frac{1}{W} (x_2 W -  (  \exp(pref(F)) x_2 + \exp( pref(T)) x_3   )&\\
+&=(x_2  -  \pi(F|x) x_2 - \pi(T|x) x_3   )&\\
+&=x_2 (1 -  \pi(F|x)) - x_3 \pi(T|x)   &\\
+&=x_2 \pi(T|x) - x_3\pi(T|x)    &\\
+&=(x_2 -x_3) \pi(T|x)  &
+\end{flalign*}
+
+
+%\begin{flalign*}
+%\frac{\partial_{u_2} \pi(F|x)}{\pi(F|x)}
+%&=x_2  ( 1 - \pi(F|x) )&
+%\end{flalign*}
+
+
+
+
+\begin{flalign*}
+\frac{\partial_{u_0} \pi(T|x)}{\pi(T|x)}
+&= \frac{W}{\exp(pref(T))} \partial_{u_0} \frac{\exp(pref(T)) }{W}&\\
+&=\frac{W}{\exp(pref(T))} \frac{1}{W^2} ((\partial_{u_0} \exp(pref(T))) W -  \exp(pref(T)) \partial_{u_0} W)&\\
+&=\frac{1}{\exp(pref(T))} \frac{1}{W} (0 -  \exp(pref(T))\exp(pref(F)) x_0 )&\\
+&= -\frac{\exp(pref(F))}{W}   x_0 &\\
+&=   - \pi(F|x) x_0&
+\end{flalign*}
+
+
+\begin{flalign*}
+\frac{\partial_{u_1} \pi(T|x)}{\pi(T|x)}
+&=   - \pi(F|x) x_1 &
+\end{flalign*}
+
+
+
+  \begin{flalign*}
+\frac{\partial_{u_2} \pi(T|x)}{\pi(T|x)}
+&= \frac{W}{\exp(pref(T))} \partial_{u_2} \frac{\exp(pref(T)) }{W}&\\
+&=\frac{W}{\exp(pref(T))} \frac{1}{W^2} ((\partial_{u_2} \exp(pref(T))) W -  \exp(pref(T)) \partial_{u_2} W)&\\
+&=\frac{1}{\exp(pref(T))} \frac{1}{W} ((\exp(pref(T))x_3 ) W -  \exp(pref(T)) (\exp(pref(F))x_2 + exp(pref(T))x_3  ) )&\\
+&=\frac{1}{1} \frac{1}{W} (x_3  W -  (\exp(pref(F))x_2 + exp(pref(T))x_3  ) )&\\
+&=  (x_3   - \pi(F) x_2 - \pi(T)x_3  ) )&\\
+&=  (1 - \pi(T))x_3   - \pi(F) x_2   &\\
+&=  (\pi(F))x_3   - \pi(F) x_2   &\\
+&=  \pi(F)(x_3   -  x_2)   &\\
+  \end{flalign*}
+
+
+
+
+These gradient terms are used in the actor-critic algorithm, evaluated for a given action (F or T) and the feature vector x.
+
+The average reward formulation is given in the Actor-Critic algorithms in practice paper, and it is listed below.
+
+
+\begin{algorithm}
+\begin{algorithmic}
+  \State Average Reward Actor-Critic Algorithm
+  \hrule
+\For{ each step with feature vector $x(S)$}
+\State Choose $A$ according to $\pi_u(\cdot| S)$
+\State Take action $A$
+\State Observe $x(S')$, $R$
+\State $\delta \leftarrow R -\bar{R} + v^\top x(S') - v^\top x(S)$
+\State $ \bar R \leftarrow \alpha_1  \delta $
+\State $e_v \leftarrow \lambda e_v + x(S) $
+\State $v \leftarrow v + \alpha_2 \delta e_v $
+\State $e_u \leftarrow \lambda e_u + \frac{\nabla_u \pi(A | x(S)) }{\pi(A | x(S)) }$
+\State $u \leftarrow u + \alpha_3 \delta e_u$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}

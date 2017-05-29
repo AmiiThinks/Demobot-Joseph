@@ -1,0 +1,10 @@
+The programs in this directory use the camera to predict if the robot will hit the wall when driving forward, with a tiemscale of one second.  The ideal prediction would vary from 0 to 1, with a value of 1/e at one second.
+
+There are three programs, the first two have been used frequently.
+
+demowaller2 - Off-policy predictions learned from experience and used in a fixed behavior.  The code makes a binary decision to avoid a wall (the ususal case) or to hit it (an infrequent test), and commits to the choice for multiple steps.
+
+demowallerD1 - Off-policy prediction used in a fixed behavior.  This code makes action decisions stochastically at each time step, but it remembers the last action and preferentially sticks with it.
+
+demowallerDAC - An reward-maximizing actor.  Due to the occasional selection of  low-probability actions in the behavior, the strict interpretation of rho in the GTD algorithms will cause the prediction learning to not be stable.  Treating the behavior probability as one, will cause general off-policy learning to be biased in a certain way.  When the target policy is deterministic (as used here), it is not clear if this will cause a bias.
+

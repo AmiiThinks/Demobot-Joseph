@@ -1,0 +1,20 @@
+Issues encountered when converting the visualization scripts from
+python2 to python3.
+Joseph Modayil
+May 5, 2015
+--------------------
+
+
+Ran the 2to3 python conversion scripts (handles print function and
+similar).  
+
+Changed the network communication functions (trial,netreadline) to be sensitive to the python3 bytes/string distinction (use encode() on strings, and decode() on bytes).
+
+Changed division operations in yuv.py to be sensitive to the new int/float distinction (/ can give float results and // gives int results).
+
+Changed the image display to be origin="upper" from origin="lower". (Not sure which piece is responsible for this change)
+
+Changed the font to "Arial.ttf", which might work better across platforms.
+
+The code now runs with python3 (and took 1 hour).
+
