@@ -1,0 +1,8 @@
+#!/bin/sh
+
+#From http://stackoverflow.com/questions/989349/running-a-command-in-a-new-mac-os-x-terminal-window 
+osascript <<END 
+tell application "Terminal"
+    do script "cd \"`pwd`\"; $@ ;exit"
+end tell
+END

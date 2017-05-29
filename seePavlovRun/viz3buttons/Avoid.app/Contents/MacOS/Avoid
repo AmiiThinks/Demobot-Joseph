@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd ~/seePavlovRun/viz3
+#./terminalIt ipython --pylab osx viewer.py ras6.local
+./terminalIt ipython --pylab osx launcher.py 

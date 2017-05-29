@@ -1,0 +1,1 @@
+ipython --pylab osx viewer.py raspi-2.local

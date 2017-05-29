@@ -1,0 +1,2 @@
+cd ~/seePavlovRun/viz
+ipython --pylab osx viewer.py ras6.local

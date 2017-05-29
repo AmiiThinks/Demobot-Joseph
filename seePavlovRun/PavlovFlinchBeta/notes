@@ -1,0 +1,12 @@
+
+This breaks the current display, but not initially, perhaps only on the nan.
+Logfiles are still not named properly.
+Something is saved as a nan.
+
+The system likes to repeatedly hit the wall.  I should shift to simpler moded behavior to test e predicion learning code.
+
+The secondary white webcam seems not to work, even with my laptop.
+
+The pavlov displays still need to be able to talk to an arbitrary machine.
+
+Bug fixes in the new code should be back-ported to demowaller2 & friends.  (better serial cable interface, better .h, proper logfile naming, etc.

@@ -1,0 +1,354 @@
+import math
+import collections
+from functools import reduce
+
+def vec_diff(a,b):
+    if type(a)==type(()):
+        return tuple([aa-bb for aa,bb in zip(a,b)])
+    return a-b
+
+
+def correlation(xys):
+    xs,ys=[x[0] for x in xys],[x[1] for x in xys]
+    mx,my=mean(xs),mean(ys)
+    corr= sum([(x-mx)*(y-my) for x,y in xys])
+    bx=sum([(x-mx)*(x-mx) for x in xs])
+    by=sum([(y-my)*(y-my) for y in ys])
+    return corr/math.sqrt(bx*by)
+
+def abs_bound(x,bound):
+    bound=abs(bound)
+    if x < -bound:
+        return -bound
+    if x > bound:
+        return bound
+    return x
+
+def if_then_else(a,b,c):
+    if a :
+        return b
+    return c
+
+def alltrue(bools):
+    for b in bools:
+        if not b:
+            return False
+    return True
+
+def nchunk(k,list,lastbit=True):
+    size=len(list)
+    out=[]
+    i=0
+    for i in range(size/k):
+        out.append(list[i*k:k*i+k])
+    i=i+1
+    if lastbit and k*i<size:
+        out.append(list[k*i:])
+    return out
+
+def weighted_choice(weight_val_list):
+    """ randomly select an item from a list [(w,x)...] based on the weight w"""
+    import random
+    import bisect
+    partial_sums=[]
+    curr=0
+    for w,x in weight_val_list:
+        curr+=w
+        partial_sums.append(curr)
+    
+    select=random.random()*curr
+    ind=bisect.bisect(partial_sums,select)
+    return weight_val_list[ind][1]
+
+def ngram(k,list,wrap=False):
+    out=[]
+    size=len(list)
+    for i in range(size-k+1):
+        out.append(list[i:i+k])
+    if wrap:
+        for i in range(size-k+1,size):
+            out.append(list[i:size]+list[0:k-(size-i)])
+    return out
+
+def cross(*args): #cross product of list of lists
+    #From http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/159975
+    ans = [[]]
+    for arg in args:
+        ans = [x+[y] for x in ans for y in arg]
+    return ans
+
+# cross(s1,s2,s3)
+
+
+
+def del_obj(name,file="bindata"):
+    import shelve
+    s=shelve.open(file)
+    del s[name]
+    s.close()
+    
+def save_obj(obj,name,file="bindata"):
+    import shelve
+    s=shelve.open(file)
+    s[name]=obj
+    s.close()
+
+
+def load_obj(name,file="bindata"):
+    import shelve
+    s=shelve.open(file)
+    obj=s[name]
+    s.close()
+    return obj
+
+def list_objs(file='bindata'):
+    import shelve
+    return list(shelve.open(file).keys())
+
+def real_range(start,end,step):
+    return [start+i*step for i in range(int((end-start)/step)) ]
+
+
+
+def timeit(func):
+    import time
+    start=time.time()
+    func()
+    return time.time()-start
+
+def norm(vals):
+    return math.sqrt(sum(v*v for v in vals))
+
+def L2norm(vals):
+    if len(vals)==0:
+        return 0
+    frac=1.0/len(vals)
+    return math.sqrt(frac*sum([v*v for v in vals]))
+
+def transpose(mat):
+    if len(mat)==0:
+        return mat
+    width=len(mat[0])
+    height=len(mat)
+    new=[]
+    for i in range(width):
+        new.append([mat[j][i] for j in range(height)])
+    return new
+                 
+def run_command(s,want_output=False):
+    import os
+    a= os.popen(s).readlines()
+    if want_output:
+        return a
+    return ""
+
+#consider using dir(obj)
+def print_object(obj):
+  view_dict(obj.__dict__)
+
+def print_object_fields(obj):
+  for k,v in list(obj.__dict__.items()):
+      print("   ",k,type(v))
+
+def str_object(obj):
+  return str_dict(obj.__dict__)
+
+def strcap(s):
+    if len(s)<70:
+        return s
+    return s[0:67]+"..."
+
+def str_dict(dic):
+    out="{ "+ "\n  ".join([ strcap("%s : %s "%(k,v)) for k,v in list(dic.items())])+"\n}"
+    return out
+
+
+def n_chunk(k,data):
+  "group data into lists of size k"
+  m=len(data)/k;
+  out=[]
+  for l in range(0,m*k,k):
+    out.append(data[l:l+k])
+  return out
+
+def view_dict(d,buff=""):
+  for k in list(d.keys()):
+    print(buff,k,d[k])
+  
+
+def add_method(obj_self, method, name=None):
+  if name==None:
+      name = method.__name__
+  class new(obj_self.__class__): pass
+  setattr(new, name, method)
+  obj_self.__class__ = new
+
+def sqr(x):
+    return x*x;
+
+
+def non_space():
+    import sys
+    c=sys.stdin.readline();
+    if (not c.isspace()):
+        print("non whitespace:",c)
+        return True
+    return False;
+
+def histogram(seq):
+    dic={}
+    for i in seq:
+        if i in dic:
+            dic[i]=dic[i]+1;
+        else:
+            dic[i]=1;
+    return list(dic.items());
+
+def fsum(list):
+    return float(reduce(lambda x,y:x+y,list,0.0))
+
+def collect(list):
+    return reduce(lambda x,y:x+y,list,[])
+
+def entropy(name_counts,names=1):    
+    if names!=0:
+        counts=[x[1] for x in name_counts];
+    else:
+        counts=name_counts
+    counts=[x for x in counts if x>0]
+    total=0.0+sum(counts)
+    normalized=[x/total for x in counts];
+    return -sum([x*math.log(x) for x in normalized])
+
+               
+
+def mean(seq):
+    return sum(seq)/len(seq)
+
+def median(seq):
+    a=seq
+    a.sort()
+    return a[len(a)/2];
+
+def glom(seq):
+    "Return a dictionary whose keys are the first value"
+    dic={}
+    for i in seq:
+        if i[0] in dic:
+            dic[i[0]]=dic[i[0]]+[i];
+        else:
+            dic[i[0]]=[i];
+    return dic;
+
+def gaussian(list):
+    mu=mean(list)
+    n=len(list)
+    sigma=math.sqrt(1.0/(n-1)* sum([sqr(x-mu) for x in list]))
+    return (mu,sigma)
+
+def pickup(vec,selection):
+    out=[vec[i] for i in range(len(selection)) if selection[i]==1]
+    return out
+
+def str_from_seq(seq):
+    #if len(seq)==0:
+    #   return "" 
+    a=""
+    for s in seq:
+      a=a+" %4.3f"%s
+    return a
+
+def index_seq(seq):
+    return list(zip(list(range(len(seq))),seq))
+
+def arg(projection,seq,access=lambda x:x[1],index=lambda x:x[0]):
+    #besti=0
+    best=seq[0]
+    for i in range(1,len(seq)):
+        if access(best)!=projection(access(seq[i]),access(best)):
+            best=seq[i]
+            #besti=i
+    return index(best)
+
+def argmax(seq):
+    return arg(max,list(zip(list(range(len(seq))),seq)))
+
+class emptyclass:
+    def __init__(self):
+        pass
+
+class simple_class:
+    def __init__(self):
+        pass
+    def __str__(self):
+        return str(list(self.__dict__.keys()))
+
+def interrogate(item):
+     """Print useful information about item."""
+     #http://www-106.ibm.com/developerworks/linux/library/l-pyint.html
+     if hasattr(item, '__name__'):
+         print("NAME:    ", item.__name__)
+     if hasattr(item, '__class__'):
+         print("CLASS:   ", item.__class__.__name__)
+     print("ID:      ", id(item))
+     print("TYPE:    ", type(item))
+     print("VALUE:   ", repr(item))
+     print("CALLABLE:", end=' ')
+     if isinstance(item, collections.Callable):
+         print("Yes")
+     else:
+         print("No")
+     if hasattr(item, '__doc__'):
+       doc = item.__doc__#getattr(item, '__doc__')
+       if doc!=None:
+           doc = doc.strip() # Remove leading/trailing whitespace.
+           firstline = doc.split('\n')[0]
+           print("DOC:     ", firstline)
+
+def uniq(alist):
+    import sets
+    return list(sets.Set(alist))
+    b=[]
+    for a in alist:
+        if a not in b:
+            b.append(a)
+    return b
+
+def find_python_dependencies():
+    files=run_command("ls *.py", True)
+    deps={}
+    for f in files:
+        short=f[:-4]#.rstrip(".py\n")
+        all=run_command("grep import %s"%f,True)
+        imps=[]
+        for line in  all:
+            line.lstrip(" ")
+            imps.append(line.split()[1])
+        deps[short]=imps
+    
+    for x in list(deps.keys()):
+        aaa=[y for y in deps[x] if y in list(deps.keys())]
+        deps[x]=uniq(aaa)
+    filename="/tmp/graph.out"
+    out=open(filename,"w")
+    out.write("digraph G { \n");
+    for source in list(deps.keys()):
+        for dep in deps[source]:
+            out.write("\t "+source+" -> " + dep + " \n")
+        if len(deps[source])==0:
+            out.write("\t "+source + " \n")
+    out.write("}\n")
+    out.close()
+    view = "/tmp/vv.ps"
+    run_command("dot -Tps "+ filename +  " -o " + view)
+    run_command("open "+view);
+    if 0:
+        rev={}
+        for x in list(deps.keys()):
+            rev[x]=[]
+        for x,v in list(deps.items()):
+            for y in v:
+                rev[y]=rev[y]+[x]
+        for x in list(rev.keys()):
+            print(x, rev[x])
+
